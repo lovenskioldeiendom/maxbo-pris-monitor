@@ -1,0 +1,72 @@
+name: Daglig prisscraping
+
+on:
+  schedule:
+    # 06:00 norsk tid = 04:00 UTC vinter, 05:00 UTC sommer.
+    # Kjør 05:00 UTC, blir 06:00 om vinteren / 07:00 om sommeren.
+    - cron: '0 5 * * *'
+  workflow_dispatch:  # Tillat manuell kjøring fra GitHub-grensesnittet
+
+permissions:
+  contents: write
+
+jobs:
+  scrape:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: |
+          pip install -r requirements.txt
+          playwright install --with-deps chromium
+
+      - name: Run scraper
+        run: python run_scraper.py
+        continue-on-error: true  # Ikke feil hele jobben om én kjede ikke svarer
+
+      - name: Build dashboard
+        run: python build_dashboard.py
+
+      - name: Commit results
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add pris_historikk.db dashboard/index.html
+          git diff --staged --quiet || git commit -m "Daglig oppdatering $(date -u +%Y-%m-%d)"
+          git push
+
+  deploy:
+    needs: scrape
+    runs-on: ubuntu-latest
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main  # Hent siste versjon med ny dashboard/index.html
+
+      - name: Setup Pages
+        uses: actions/configure-pages@v4
+
+      - name: Upload artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: ./dashboard
+
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
