@@ -1,0 +1,43 @@
+name: Daglig prisscraping
+
+on:
+  schedule:
+    - cron: '0 5 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  scrape:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: |
+          pip install -r requirements.txt
+          playwright install --with-deps chromium
+
+      - name: Run scraper
+        run: python run_scraper.py
+        continue-on-error: true
+
+      - name: Build dashboard
+        run: python build_dashboard.py
+
+      - name: Commit results
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add pris_historikk.db dashboard/index.html
+          git diff --staged --quiet || git commit -m "Daglig oppdatering $(date -u +%Y-%m-%d)"
+          git push
