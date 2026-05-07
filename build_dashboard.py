@@ -23,6 +23,7 @@ OUT_FILE = OUT_DIR / "index.html"
 
 def build_data():
     """Bygger en JSON-struktur med dagens priser + historikk per produkt."""
+    init_db()
     latest = get_latest_prices()
     latest_date = latest[0]["date"] if latest else date.today().isoformat()
 
