@@ -42,6 +42,8 @@ SCRAPER_CLASSES = {
 
 async def main(competitors: list[str], dry_run: bool, headless: bool):
     init_db()
+    # Skriv en placeholder så databasen alltid har minst én rad
+    save_price("_init", "_init", None, status="ok")
     summary = {"ok": 0, "missing_url": 0, "scrape_error": 0}
 
     for competitor in competitors:
