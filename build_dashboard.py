@@ -15,7 +15,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent))
 
 from products import PRODUCTS, COMPETITORS, COMPETITOR_NAMES
-from database import get_latest_prices, get_history, get_all_dates
+from database import init_db, get_latest_prices, get_history, get_all_dates
 
 OUT_DIR = Path(__file__).parent / "dashboard"
 OUT_FILE = OUT_DIR / "index.html"
@@ -335,6 +335,7 @@ document.addEventListener('DOMContentLoaded', init);
 
 def main():
     OUT_DIR.mkdir(exist_ok=True)
+    init_db()
     data = build_data()
     html = HTML_TEMPLATE.replace("__DATA_PLACEHOLDER__", json.dumps(data, ensure_ascii=False))
     OUT_FILE.write_text(html, encoding="utf-8")
